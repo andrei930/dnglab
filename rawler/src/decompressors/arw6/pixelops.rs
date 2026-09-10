@@ -14,6 +14,7 @@ use super::{CODEC_BIT_DEPTH, Plane};
 const DELIN_CURVE: [u16; 1 << CODEC_BIT_DEPTH] = parse_delin_curve(include_str!("delin_curve.csv"));
 
 /// Parse the one-value-per-line delin_curve.csv at compile time.
+/// Accept both LF and CRLF line endings so Windows checkouts compile too.
 const fn parse_delin_curve(csv: &str) -> [u16; 1 << CODEC_BIT_DEPTH] {
   let bytes = csv.as_bytes();
   let mut table = [0u16; 1 << CODEC_BIT_DEPTH];
@@ -27,6 +28,10 @@ const fn parse_delin_curve(csv: &str) -> [u16; 1 << CODEC_BIT_DEPTH] {
         value = value * 10 + (b - b'0') as u32;
         assert!(value <= u16::MAX as u32, "delin_curve.csv: value does not fit u16");
         have_digit = true;
+      }
+      b'\r' => {
+        // Git may convert the CSV to CRLF on Windows. The following '\n'
+        // performs the actual end-of-line handling and entry commit.
       }
       b'\n' => {
         assert!(have_digit, "delin_curve.csv: empty line");
